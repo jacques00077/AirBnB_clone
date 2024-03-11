@@ -10,88 +10,51 @@ Module for the Base Class
     - to_dict(self) - will returns dictionary
 - __str__ it is a method to print
 """
-
-import uuid
+import models
+from uuid import uuid4
 from datetime import datetime
-from models import storage
+
 
 class BaseModel:
+    """Represents the BaseModel of the HBnB project."""
+
     def __init__(self, *args, **kwargs):
-        """
-        Initialiazes new instance of BaseModel.
+        """Initialize a new BaseModel.
 
         Args:
-            *args: Unused positional arguments
-            **kwargs: Dictionary representation of an instance.
-
-        If kwargs is not empty:
-            Each key has an attribute name
-            Each value is the value of the corresponding attr name
-            Convert datetime to datetime objects
-
-        Otherwise:
-            Create id and created_at values as initially done
+            *args (any): Unused.
+            **kwargs (dict): Key/value pairs of attributes.
         """
-        if kwargs:
-            if '__class__' in kwargs:
-                # Remove '__class__' from the dictionary
-                del kwargs['__class__']
-            if 'created_at' in kwargs:
-                kwargs['created_at'] = datetime.strptime(
-                        kwargs['created_at'], '%Y-%m-%dT%H:%M:%S.%f')
-            if 'updated_at' in kwargs:
-                kwargs['updated_at'] = datetime.strptime(
-                        kwargs['updated_at'], '%Y-%m-%dT%H:%M:%S.%f')
-
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
+        tform = "%Y-%m-%dT%H:%M:%S.%f"
+        self.id = str(uuid4())
+        self.created_at = datetime.today()
+        self.updated_at = datetime.today()
+        if len(kwargs) != 0:
+            for k, v in kwargs.items():
+                if k == "created_at" or k == "updated_at":
+                    self.__dict__[k] = datetime.strptime(v, tform)
+                else:
+                    self.__dict__[k] = v
         else:
-            self.id = str(uuid.uuid4())
-            self.created_at = datetime.now()
-            self.updated_at = datetime.now()
-	    storage.new(self)
-
-    def __str__(self):
-        """Returns a string depiction of the class object."""
-        className = self.__class__.__name__
-        return "[{}] ({}) {}".format(className,self.id, self.__dict__)
+            models.storage.new(self)
 
     def save(self):
-        """
-        Update_at with the current datetime
-        """
-        self.updated_at = datetime.now()
-	storage.save()
+        """Update updated_at with the current datetime."""
+        self.updated_at = datetime.today()
+        models.storage.save()
 
     def to_dict(self):
         """
         Returns a dictionary that includes key/value pairs extracted 
         from the __dict__ attribute of an instance.
         """
-        obj_dict = self.__dict__.copy()
+        oj_dict = self.__dict__.copy()
+        oj_dict["created_at"] = self.created_at.isoformat()
+        oj_dict["updated_at"] = self.updated_at.isoformat()
+        oj_dict["__class__"] = self.__class__.__name__
+        return oj_dict
 
-        obj_dict['__class__'] = self.__class__.__name__
-        obj_dict['created_at'] = self.created_at.isoformat()
-        obj_dict['updated_at'] = self.updated_at.isoformat()
-
-        return obj_dict
-
-if __name__ == '__main__':
-    my_model = BaseModel()
-    my_model.name = "My First Model"
-    my_model.my_number = 89
-    print(my_model)
-    my_model.save()
-    print(my_model)
-    my_model_json = my_model.to_dict()
-    print(my_model_json)
-    print("JSON of my_model:")
-    for key in my_model_json.keys():
-        print("\t{}: ({}) - {}".format(key, type(my_model_json[key]), my_model_json[key]))
-    print()
-    print("Creating a new model from existing dictionary")
-    my_new_model = BaseModel(**my_model_json)
-    print(my_new_model.id)
-    print(my_new_model)
-    print(type(my_new_model.created_at))
+    def __str__(self):
+        """Return the print/str representation of the BaseModel instance."""
+        className = self.__class__.__name__
+        return "[{}] ({}) {}".format(className, self.id, self.__dict__)
